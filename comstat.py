@@ -54,28 +54,31 @@ def main():
         print("No train services available.")
         return
 
-    for service in data["trainServices"]:
-        stops_at_destination = False
-        estimated_stop_time = None
-        if service["isCancelled"]:
-            continue
-        for calling_point_list in service["subsequentCallingPoints"]:
-            for calling_point in calling_point_list["callingPoint"]:
-                if calling_point["crs"] == args.destination:
-                    stops_at_destination = True
-                    estimated_stop_time = (
-                        calling_point["et"]
-                        if calling_point["et"] != "On time"
-                        else calling_point["st"]
-                    )
-        if not stops_at_destination:
-            continue
+    for service, estimated_stop_time in yield_matching_departures(
+        data["trainServices"], args.destination
+    ):
         print(service)
         print("Estimated stop time:", estimated_stop_time)
         print(
             "Estimated departure time:",
             service["etd"] if service["etd"] != "On time" else service["std"],
         )
+        print("platform:", service["platform"])
+
+
+def yield_matching_departures(service_list, destination):
+    for service in service_list:
+        if service["isCancelled"]:
+            continue
+        for calling_point_list in service["subsequentCallingPoints"]:
+            for calling_point in calling_point_list["callingPoint"]:
+                if calling_point["crs"] == destination:
+                    estimated_stop_time = (
+                        calling_point["et"]
+                        if calling_point["et"] != "On time"
+                        else calling_point["st"]
+                    )
+                    yield service, estimated_stop_time
 
 
 if __name__ == "__main__":
